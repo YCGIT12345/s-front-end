@@ -7,14 +7,22 @@ export namespace AuthApi {
     username?: string;
   }
 
-  /** 登录接口返回值 */
+  /** 登录接口返回值（后端返回 access_token + user） */
   export interface LoginResult {
-    accessToken: string;
+    access_token: string;
+    token_type: string;
+    user: any;
   }
 
   export interface RefreshTokenResult {
     data: string;
     status: number;
+  }
+
+  /** nav 接口返回值 */
+  export interface NavResult {
+    menuList: string[];
+    permission: string[];
   }
 }
 
@@ -38,14 +46,20 @@ export async function refreshTokenApi() {
  * 退出登录
  */
 export async function logoutApi() {
-  return baseRequestClient.post('/auth/logout', {
-    withCredentials: true,
-  });
+  return baseRequestClient.post('/auth/logout');
+}
+
+/**
+ * 获取导航菜单和权限
+ */
+export async function getNavApi() {
+  return requestClient.post<AuthApi.NavResult>('/auth/nav');
 }
 
 /**
  * 获取用户权限码
  */
 export async function getAccessCodesApi() {
-  return requestClient.get<string[]>('/auth/codes');
+  const nav = await getNavApi();
+  return nav.permission ?? [];
 }

@@ -66,11 +66,12 @@ function convertRoutes(
 ): RouteRecordRaw[] {
   return mapTree(routes, (node) => {
     const route = node as unknown as RouteRecordRaw;
-    const { component, name } = node;
+    const { component, menu_name } = node;
 
-    if (!name) {
+    if (!menu_name) {
       console.error('route name is required', route);
     }
+    route.name = menu_name;
 
     // layout转换
     if (component && layoutMap[component]) {

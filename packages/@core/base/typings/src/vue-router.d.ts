@@ -134,6 +134,7 @@ type RouteRecordStringComponent<T = string> = Omit<
 > & {
   children?: RouteRecordStringComponent<T>[];
   component: T;
+  menu_name?: string;
 };
 
 type ComponentRecordType = Record<string, () => Promise<Component>>;
