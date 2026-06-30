@@ -4,7 +4,6 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { LOGIN_PATH } from '@vben/constants';
-import { preferences } from '@vben/preferences';
 import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 
 import { notification } from 'ant-design-vue';
@@ -33,20 +32,20 @@ export const useAuthStore = defineStore('auth', () => {
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
-      const { access_token: accessToken, user: loginUser } =
-        await loginApi(params);
-
+      const data:any =  await loginApi(params);
+      const accessToken = data?.access_token;
+      const account = data?.account;
       // 如果成功获取到 accessToken
       if (accessToken) {
         accessStore.setAccessToken(accessToken);
 
         // 从登录响应构造用户信息
         userInfo = {
-          userId: String(loginUser?.id ?? ''),
-          username: loginUser?.username ?? '',
-          realName: loginUser?.real_name ?? '',
-          avatar: loginUser?.avatar ?? '',
-          desc: '',
+          userId: String(account?.id ?? ''),
+          username: account?.contact_person?? '',
+          realName: account?.contact_person ?? '',
+          avatar: account?.avatar?? '',
+          desc: account?.contact_phone ?? '',
           homePath: '',
           token: accessToken,
         };
@@ -82,14 +81,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout(redirect: boolean = true) {
-    try {
-      await logoutApi();
-    } catch {
-      // 不做任何处理
-    }
+    // 清空所有本地存储
+    localStorage.clear();
     resetAllStores();
-    accessStore.setLoginExpired(false);
-    clearNavCache();
 
     // 回登录页带上当前路由地址
     await router.replace({

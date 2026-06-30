@@ -18,6 +18,8 @@ import {
   Tag,
 } from 'ant-design-vue';
 
+import { useAccess } from '@vben/access';
+
 import {
   createUserApi,
   deleteUserApi,
@@ -26,6 +28,8 @@ import {
 } from '#/api';
 
 defineOptions({ name: 'UserList' });
+
+const { hasAccessByCodes } = useAccess();
 
 const loading = ref(false);
 const list = ref<UserItem[]>([]);
@@ -179,7 +183,7 @@ onMounted(fetchList);
         @press-enter="handleSearch"
       />
       <Button type="primary" @click="handleSearch">搜索</Button>
-      <Button type="primary" @click="openCreateModal">新增用户</Button>
+      <Button type="primary" v-if="hasAccessByCodes(['user:add'])" @click="openCreateModal">新增用户</Button>
     </div>
 
     <Table
@@ -208,14 +212,14 @@ onMounted(fetchList);
         </template>
         <template v-if="column.key === 'action'">
           <Space>
-            <Button size="small" type="link" @click="openEditModal(record)">
+            <Button size="small" v-if="hasAccessByCodes(['user:edit'])" type="link" @click="openEditModal(record)">
               编辑
             </Button>
             <Popconfirm
               title="确定删除该用户？"
               @confirm="handleDelete(record.id)"
             >
-              <Button size="small" danger type="link">删除</Button>
+              <Button size="small" v-if="hasAccessByCodes(['user:delete'])" danger type="link">删除</Button>
             </Popconfirm>
           </Space>
         </template>

@@ -24,6 +24,14 @@ export const overridesPreferences = defineOverridesPreferences({
     enableRefreshToken: false,
     name: import.meta.env.VITE_APP_TITLE,
   },
+  theme: {
+    mode: 'light',
+  },
+  logo: {
+    enable: true,
+    fit: 'contain',
+    source: 'https://qinglidesign.oss-cn-shanghai.aliyuncs.com/logo.gif',
+  },
   copyright: appCopyrightPreferences,
 });
 

@@ -20,6 +20,8 @@ import {
   Tag,
 } from 'ant-design-vue';
 
+import { useAccess } from '@vben/access';
+
 import {
   createAccountApi,
   deleteAccountApi,
@@ -32,6 +34,8 @@ import {
 import { getRoleListApi } from '#/api/core/role';
 
 defineOptions({ name: 'AccountList' });
+
+const { hasAccessByCodes } = useAccess();
 
 const loading = ref(false);
 const list = ref<AccountItem[]>([]);
@@ -68,7 +72,7 @@ const columns = [
   { title: '联系人', dataIndex: 'contact_person', key: 'contact_person' },
   { title: '联系电话', dataIndex: 'contact_phone', key: 'contact_phone' },
   { title: '联系邮箱', dataIndex: 'contact_email', key: 'contact_email' },
-  { title: '地址', dataIndex: 'address', key: 'address', ellipsis: true },
+  { title: '联系地址', dataIndex: 'address', key: 'address', ellipsis: true },
   {
     title: '状态',
     dataIndex: 'status',
@@ -226,7 +230,7 @@ onMounted(fetchList);
         @press-enter="handleSearch"
       />
       <Button type="primary" @click="handleSearch">搜索</Button>
-      <Button type="primary" @click="openCreateModal">新增账户</Button>
+      <Button type="primary" v-if="hasAccessByCodes(['account:add'])" @click="openCreateModal">新增账户</Button>
     </div>
 
     <Table
@@ -255,7 +259,7 @@ onMounted(fetchList);
         </template>
         <template v-if="column.key === 'action'">
           <Space>
-            <Button size="small" v-if="record.id !== 1" type="link" @click="openEditModal(record)">
+            <Button size="small" v-if="hasAccessByCodes(['account:edit'])" type="link" @click="openEditModal(record)">
               编辑
             </Button>
             <Button size="small" v-if="record.id !== 1" type="link" @click="openRoleModal(record)">
@@ -265,7 +269,7 @@ onMounted(fetchList);
               title="确定删除该账户？"
               @confirm="handleDelete(record.id)"
             >
-              <Button size="small" v-if="record.id !== 1" danger type="link">删除</Button>
+              <Button size="small" v-if="hasAccessByCodes(['account:delete'])" danger type="link">删除</Button>
             </Popconfirm>
           </Space>
         </template>
@@ -298,13 +302,13 @@ onMounted(fetchList);
             placeholder="请再次输入密码"
           />
         </Form.Item>
-        <Form.Item label="联系人">
+        <Form.Item label="联系人" required>
           <Input
             v-model:value="formData.contact_person"
             placeholder="请输入联系人"
           />
         </Form.Item>
-        <Form.Item label="联系电话">
+        <Form.Item label="联系电话" required>
           <Input
             v-model:value="formData.contact_phone"
             placeholder="请输入联系电话"
@@ -316,8 +320,8 @@ onMounted(fetchList);
             placeholder="请输入联系邮箱"
           />
         </Form.Item>
-        <Form.Item label="地址">
-          <Input v-model:value="formData.address" placeholder="请输入地址" />
+        <Form.Item label="联系地址">
+          <Input v-model:value="formData.address" placeholder="请输入联系地址" />
         </Form.Item>
         <Form.Item label="状态">
           <Select v-model:value="formData.status">

@@ -19,6 +19,8 @@ import {
   Tag,
 } from 'ant-design-vue';
 
+import { useAccess } from '@vben/access';
+
 import {
   createMenuApi,
   deleteMenuApi,
@@ -27,6 +29,8 @@ import {
 } from '#/api/core/role';
 
 defineOptions({ name: 'MenuList' });
+
+const { hasAccessByCodes } = useAccess();
 
 const loading = ref(false);
 const treeData = ref<MenuBrief[]>([]);
@@ -57,7 +61,7 @@ const columns = [
   },
   { title: '路径', dataIndex: 'path', key: 'path' },
   { title: '权限标识', dataIndex: 'perms', key: 'perms' },
-  { title: '图标', dataIndex: 'icon', key: 'icon', width: 80 },
+  { title: '图标', dataIndex: 'icon', key: 'icon', width: 200 },
   { title: '排序', dataIndex: 'sort', key: 'sort', width: 60 },
   {
     title: '状态',
@@ -201,7 +205,7 @@ onMounted(fetchTree);
   <Page title="菜单管理">
     <div class="mb-4">
       <Space>
-        <Button type="primary" @click="openCreateModal(0)">新增根菜单</Button>
+        <Button type="primary" v-if="hasAccessByCodes(['menu:add'])" @click="openCreateModal(0)">新增根菜单</Button>
       </Space>
     </div>
 
@@ -241,14 +245,14 @@ onMounted(fetchTree);
         </template>
         <template v-if="column.key === 'action'">
           <Space>
-            <Button size="small" type="link" @click="openEditModal(record)">
+            <Button size="small" v-if="hasAccessByCodes(['menu:edit'])" type="link" @click="openEditModal(record)">
               编辑
             </Button>
             <Popconfirm
               title="确定删除该菜单？"
               @confirm="handleDelete(record.id)"
             >
-              <Button size="small" danger type="link">删除</Button>
+              <Button size="small" v-if="hasAccessByCodes(['menu:delete'])" danger type="link">删除</Button>
             </Popconfirm>
           </Space>
         </template>
