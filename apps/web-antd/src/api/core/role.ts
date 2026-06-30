@@ -56,42 +56,45 @@ export interface MenuBrief {
  * 获取角色列表
  */
 export async function getRoleListApi(params: RoleListParams) {
-  return requestClient.get<RoleListResult>('/roles', { params });
+  return requestClient.post<RoleListResult>('/roles/list', params);
 }
 
 /**
  * 创建角色
  */
 export async function createRoleApi(data: RoleFormData) {
-  return requestClient.post<RoleItem>('/roles', data);
+  return requestClient.post<RoleItem>('/roles/create', data);
 }
 
 /**
  * 更新角色
  */
 export async function updateRoleApi(id: number, data: RoleFormData) {
-  return requestClient.put<RoleItem>(`/roles/${id}`, data);
+  return requestClient.post<RoleItem>('/roles/update', { id, ...data });
 }
 
 /**
  * 删除角色
  */
 export async function deleteRoleApi(id: number) {
-  return requestClient.delete(`/roles/${id}`);
+  return requestClient.post('/roles/delete', { id });
 }
 
 /**
  * 获取角色已分配的菜单
  */
 export async function getRoleMenusApi(roleId: number) {
-  return requestClient.get<MenuBrief[]>(`/roles/${roleId}/menus`);
+  return requestClient.post<MenuBrief[]>('/roles/menus', {
+    role_id: roleId,
+  });
 }
 
 /**
  * 设置角色菜单
  */
 export async function setRoleMenusApi(roleId: number, menuIds: number[]) {
-  return requestClient.put<MenuBrief[]>(`/roles/${roleId}/menus`, {
+  return requestClient.post<MenuBrief[]>('/roles/menus/update', {
+    role_id: roleId,
     menu_ids: menuIds,
   });
 }
@@ -100,7 +103,7 @@ export async function setRoleMenusApi(roleId: number, menuIds: number[]) {
  * 获取所有菜单（用于角色分配）
  */
 export async function getAllMenusForAssignApi() {
-  return requestClient.get<MenuBrief[]>('/menus');
+  return requestClient.post<MenuBrief[]>('/menus/list');
 }
 
 // --- 菜单管理 CRUD ---
@@ -122,19 +125,19 @@ export interface MenuFormData {
  * 创建菜单
  */
 export async function createMenuApi(data: MenuFormData) {
-  return requestClient.post<MenuBrief>('/menus', data);
+  return requestClient.post<MenuBrief>('/menus/create', data);
 }
 
 /**
  * 更新菜单
  */
 export async function updateMenuApi(id: number, data: MenuFormData) {
-  return requestClient.put<MenuBrief>(`/menus/${id}`, data);
+  return requestClient.post<MenuBrief>('/menus/update', { id, ...data });
 }
 
 /**
  * 删除菜单
  */
 export async function deleteMenuApi(id: number) {
-  return requestClient.delete(`/menus/${id}`);
+  return requestClient.post('/menus/delete', { id });
 }

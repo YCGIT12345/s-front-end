@@ -46,6 +46,8 @@ const editingId = ref<number | null>(null);
 
 const formData = reactive<AccountFormData>({
   account_name: '',
+  password: '',
+  confirm_password: '',
   contact_person: '',
   contact_phone: '',
   contact_email: '',
@@ -112,6 +114,8 @@ function openCreateModal() {
   modalTitle.value = '新增账户';
   Object.assign(formData, {
     account_name: '',
+    password: '',
+    confirm_password: '',
     contact_person: '',
     contact_phone: '',
     contact_email: '',
@@ -127,6 +131,8 @@ function openEditModal(record: AccountItem) {
   modalTitle.value = '编辑账户';
   Object.assign(formData, {
     account_name: record.account_name,
+    password: '',
+    confirm_password: '',
     contact_person: record.contact_person,
     contact_phone: record.contact_phone,
     contact_email: record.contact_email,
@@ -142,13 +148,27 @@ async function handleSubmit() {
     message.error('账户名称不能为空');
     return;
   }
+  if (!editingId.value && !formData.password) {
+    message.error('新增账户时密码不能为空');
+    return;
+  }
+  if (formData.password && formData.password !== formData.confirm_password) {
+    message.error('两次输入的密码不一致');
+    return;
+  }
   modalLoading.value = true;
   try {
+    const submitData = { ...formData };
+    // 编辑时如未填写密码则不发送密码字段
+    if (editingId.value && !submitData.password) {
+      delete submitData.password;
+      delete submitData.confirm_password;
+    }
     if (editingId.value) {
-      await updateAccountApi(editingId.value, { ...formData });
+      await updateAccountApi(editingId.value, submitData);
       message.success('更新成功');
     } else {
-      await createAccountApi({ ...formData });
+      await createAccountApi(submitData);
       message.success('创建成功');
     }
     modalVisible.value = false;
@@ -224,7 +244,10 @@ onMounted(fetchList);
       size="small"
       @change="handleTableChange"
     >
-      <template #bodyCell="{ column, record }">
+      <template #bodyCell="{ column, record, index }">
+        <template v-if="column.key === 'id'">
+          {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
+        </template>
         <template v-if="column.key === 'status'">
           <Tag :color="record.status === 1 ? 'green' : 'red'">
             {{ record.status === 1 ? '启用' : '禁用' }}
@@ -232,17 +255,17 @@ onMounted(fetchList);
         </template>
         <template v-if="column.key === 'action'">
           <Space>
-            <Button size="small" type="link" @click="openEditModal(record)">
+            <Button size="small" v-if="record.id !== 1" type="link" @click="openEditModal(record)">
               编辑
             </Button>
-            <Button size="small" type="link" @click="openRoleModal(record)">
+            <Button size="small" v-if="record.id !== 1" type="link" @click="openRoleModal(record)">
               角色
             </Button>
             <Popconfirm
               title="确定删除该账户？"
               @confirm="handleDelete(record.id)"
             >
-              <Button size="small" danger type="link">删除</Button>
+              <Button size="small" v-if="record.id !== 1" danger type="link">删除</Button>
             </Popconfirm>
           </Space>
         </template>
@@ -261,6 +284,18 @@ onMounted(fetchList);
           <Input
             v-model:value="formData.account_name"
             placeholder="请输入账户名称"
+          />
+        </Form.Item>
+        <Form.Item label="密码">
+          <Input.Password
+            v-model:value="formData.password"
+            placeholder="请输入密码（留空则不修改）"
+          />
+        </Form.Item>
+        <Form.Item label="确认密码">
+          <Input.Password
+            v-model:value="formData.confirm_password"
+            placeholder="请再次输入密码"
           />
         </Form.Item>
         <Form.Item label="联系人">

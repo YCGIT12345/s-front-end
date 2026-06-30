@@ -1,4 +1,9 @@
+import type { RouteRecordStringComponent } from '@vben/types';
+
 import { baseRequestClient, requestClient } from '#/api/request';
+
+import type { BackendMenuItem } from './menu';
+import { transformMenuToRoute } from './menu';
 
 export namespace AuthApi {
   /** 登录接口参数 */
@@ -21,10 +26,13 @@ export namespace AuthApi {
 
   /** nav 接口返回值 */
   export interface NavResult {
-    menuList: string[];
+    menuTree: BackendMenuItem[];
     permission: string[];
   }
 }
+
+/** nav 接口响应缓存 */
+let cachedNavResult: AuthApi.NavResult | null = null;
 
 /**
  * 登录
@@ -53,13 +61,40 @@ export async function logoutApi() {
  * 获取导航菜单和权限
  */
 export async function getNavApi() {
-  return requestClient.post<AuthApi.NavResult>('/auth/nav');
+  const nav = await requestClient.post<AuthApi.NavResult>('/auth/nav');
+  cachedNavResult = nav;
+  return nav;
+}
+
+/**
+ * 获取缓存的菜单树（由 getNavApi 或 getAccessCodesApi 调用后缓存）
+ * 将后端原始菜单数据转换为 generateRoutesByBackend 需要的 RouteRecordStringComponent 格式
+ * 若缓存不存在则主动请求
+ */
+export async function getCachedMenuTree(): Promise<
+  RouteRecordStringComponent[]
+> {
+  if (!cachedNavResult) {
+    await getNavApi();
+  }
+  return transformMenuToRoute(cachedNavResult!.menuTree);
 }
 
 /**
  * 获取用户权限码
  */
 export async function getAccessCodesApi() {
+  // 若已缓存则直接返回，避免重复请求
+  if (cachedNavResult) {
+    return cachedNavResult.permission ?? [];
+  }
   const nav = await getNavApi();
   return nav.permission ?? [];
+}
+
+/**
+ * 清除 nav 缓存（退出登录时调用）
+ */
+export function clearNavCache() {
+  cachedNavResult = null;
 }

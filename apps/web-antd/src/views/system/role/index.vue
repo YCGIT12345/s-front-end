@@ -174,13 +174,16 @@ async function openMenuModal(record: RoleItem) {
 }
 
 function buildMenuTree(menus: any[]): any[] {
-  return menus
-    .filter((m: any) => m.menu_type !== 3)
-    .map((menu: any) => ({
+  return menus.map((menu: any) => {
+    let typeLabel = '';
+    if (menu.menu_type === 1) typeLabel = ' (目录)';
+    else if (menu.menu_type === 3) typeLabel = ' (按钮)';
+    return {
       key: menu.id,
-      title: `${menu.menu_name}${menu.menu_type === 1 ? ' (目录)' : ''}${menu.path ? ` - ${menu.path}` : ''}`,
+      title: `${menu.menu_name}${typeLabel}${menu.path ? ` - ${menu.path}` : menu.perms ? ` [${menu.perms}]` : ''}`,
       children: menu.children ? buildMenuTree(menu.children) : [],
-    }));
+    };
+  });
 }
 
 function getAllLeafKeys(tree: any[]): number[] {
@@ -242,7 +245,10 @@ onMounted(fetchList);
       size="small"
       @change="handleTableChange"
     >
-      <template #bodyCell="{ column, record }">
+      <template #bodyCell="{ column, record, index }">
+        <template v-if="column.key === 'id'">
+          {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
+        </template>
         <template v-if="column.key === 'status'">
           <Tag :color="record.status === 1 ? 'green' : 'red'">
             {{ record.status === 1 ? '启用' : '禁用' }}

@@ -37,6 +37,7 @@ const modalVisible = ref(false);
 const modalTitle = ref('新增用户');
 const modalLoading = ref(false);
 const editingId = ref<number | null>(null);
+const formRef = ref();
 
 const formData = reactive<UserFormData>({
   username: '',
@@ -45,8 +46,6 @@ const formData = reactive<UserFormData>({
   phone: '',
   status: 1,
   account_id: null,
-  password: '',
-  confirm_password: '',
 });
 
 const columns = [
@@ -60,12 +59,6 @@ const columns = [
     dataIndex: 'status',
     key: 'status',
     width: 80,
-  },
-  {
-    title: '最后登录',
-    dataIndex: 'last_login_at',
-    key: 'last_login_at',
-    width: 170,
   },
   {
     title: '操作',
@@ -111,10 +104,9 @@ function openCreateModal() {
     phone: '',
     status: 1,
     account_id: null,
-    password: '',
-    confirm_password: '',
   });
   modalVisible.value = true;
+  formRef.value?.clearValidate();
 }
 
 function openEditModal(record: UserItem) {
@@ -127,13 +119,17 @@ function openEditModal(record: UserItem) {
     phone: record.phone,
     status: record.status,
     account_id: record.account_id,
-    password: '',
-    confirm_password: '',
   });
   modalVisible.value = true;
+  formRef.value?.clearValidate();
 }
 
 async function handleSubmit() {
+  try {
+    await formRef.value?.validate();
+  } catch {
+    return;
+  }
   modalLoading.value = true;
   try {
     if (editingId.value) {
@@ -146,10 +142,6 @@ async function handleSubmit() {
       });
       message.success('更新成功');
     } else {
-      if (!formData.username || !formData.password) {
-        message.error('用户名和密码不能为空');
-        return;
-      }
       await createUserApi({
         username: formData.username,
         real_name: formData.real_name,
@@ -157,8 +149,6 @@ async function handleSubmit() {
         phone: formData.phone,
         status: formData.status,
         account_id: formData.account_id,
-        password: formData.password,
-        confirm_password: formData.confirm_password,
       });
       message.success('创建成功');
     }
@@ -207,7 +197,10 @@ onMounted(fetchList);
       size="small"
       @change="handleTableChange"
     >
-      <template #bodyCell="{ column, record }">
+      <template #bodyCell="{ column, record, index }">
+        <template v-if="column.key === 'id'">
+          {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
+        </template>
         <template v-if="column.key === 'status'">
           <Tag :color="record.status === 1 ? 'green' : 'red'">
             {{ record.status === 1 ? '启用' : '禁用' }}
@@ -235,34 +228,39 @@ onMounted(fetchList);
       :title="modalTitle"
       @ok="handleSubmit"
     >
-      <Form :model="formData" layout="vertical">
-        <Form.Item label="用户名" required>
+      <Form ref="formRef" :model="formData" layout="vertical">
+        <Form.Item
+          label="用户名"
+          name="username"
+          :rules="[{ required: true, message: '用户名不能为空' }]"
+        >
           <Input
             v-model:value="formData.username"
             :disabled="!!editingId"
             placeholder="请输入用户名"
           />
         </Form.Item>
-        <Form.Item label="姓名">
+        <Form.Item label="姓名" name="real_name">
           <Input v-model:value="formData.real_name" placeholder="请输入姓名" />
         </Form.Item>
-        <Form.Item label="邮箱">
+        <Form.Item
+          label="邮箱"
+          name="email"
+          :rules="[
+            { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '请输入正确的邮箱格式', trigger: 'blur' },
+          ]"
+        >
           <Input v-model:value="formData.email" placeholder="请输入邮箱" />
         </Form.Item>
-        <Form.Item label="手机号">
+        <Form.Item
+          label="手机号"
+          name="phone"
+          :rules="[
+            { required: true, message: '手机号不能为空' },
+            { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
+          ]"
+        >
           <Input v-model:value="formData.phone" placeholder="请输入手机号" />
-        </Form.Item>
-        <Form.Item v-if="!editingId" label="密码" required>
-          <Input.Password
-            v-model:value="formData.password"
-            placeholder="请输入密码"
-          />
-        </Form.Item>
-        <Form.Item v-if="!editingId" label="确认密码" required>
-          <Input.Password
-            v-model:value="formData.confirm_password"
-            placeholder="请确认密码"
-          />
         </Form.Item>
         <Form.Item label="状态">
           <Select v-model:value="formData.status">

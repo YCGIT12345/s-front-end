@@ -44,7 +44,6 @@ const formData = reactive({
   perms: '',
   icon: '',
   sort: 0,
-  visible: 1,
   status: 1,
 });
 
@@ -143,7 +142,6 @@ function openCreateModal(parentId = 0) {
     perms: '',
     icon: '',
     sort: 0,
-    visible: 1,
     status: 1,
   });
   modalVisible.value = true;
@@ -160,7 +158,6 @@ function openEditModal(record: MenuBrief) {
     perms: record.perms ?? '',
     icon: record.icon ?? '',
     sort: record.sort,
-    visible: record.visible,
     status: record.status,
   });
   modalVisible.value = true;
@@ -247,14 +244,6 @@ onMounted(fetchTree);
             <Button size="small" type="link" @click="openEditModal(record)">
               编辑
             </Button>
-            <Button
-              v-if="record.menu_type !== 3"
-              size="small"
-              type="link"
-              @click="openCreateModal(record.id)"
-            >
-              添加子级
-            </Button>
             <Popconfirm
               title="确定删除该菜单？"
               @confirm="handleDelete(record.id)"
@@ -320,12 +309,6 @@ onMounted(fetchTree);
           <Select v-model:value="formData.status">
             <Select.Option :value="1">启用</Select.Option>
             <Select.Option :value="0">禁用</Select.Option>
-          </Select>
-        </Form.Item>
-        <Form.Item label="是否可见">
-          <Select v-model:value="formData.visible">
-            <Select.Option :value="1">显示</Select.Option>
-            <Select.Option :value="0">隐藏</Select.Option>
           </Select>
         </Form.Item>
       </Form>

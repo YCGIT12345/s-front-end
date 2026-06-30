@@ -8,7 +8,7 @@ import { preferences } from '@vben/preferences';
 
 import { message } from 'ant-design-vue';
 
-import { getAllMenusApi } from '#/api';
+import { getCachedMenuTree } from '#/api';
 import { BasicLayout, IFrameView } from '#/layouts';
 import { $t } from '#/locales';
 
@@ -27,9 +27,10 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
     fetchMenuListAsync: async () => {
       message.loading({
         content: `${$t('common.loadingMenu')}...`,
-        duration: 1.5,
+        duration: 1,
       });
-      return await getAllMenusApi();
+      // 从 /auth/nav 缓存中获取菜单树，由后端直接生成动态路由
+      return await getCachedMenuTree();
     },
     // 可以指定没有权限跳转403页面
     forbiddenComponent,

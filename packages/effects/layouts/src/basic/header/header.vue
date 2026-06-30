@@ -3,17 +3,12 @@ import { computed, useSlots } from 'vue';
 
 import { useRefresh } from '@vben/hooks';
 import { RotateCw } from '@vben/icons';
-import { preferences, usePreferences } from '@vben/preferences';
-import { useAccessStore } from '@vben/stores';
+import { preferences } from '@vben/preferences';
 
 import { VbenFullScreen, VbenIconButton } from '@vben-core/shadcn-ui';
 
 import {
-  GlobalSearch,
-  LanguageToggle,
   PreferencesButton,
-  ThemeToggle,
-  TimezoneButton,
 } from '../../widgets';
 
 interface Props {
@@ -35,8 +30,6 @@ const emit = defineEmits<{ clearPreferencesAndLogout: [] }>();
 
 const REFERENCE_VALUE = 100;
 
-const accessStore = useAccessStore();
-const { globalSearchShortcutKey, preferencesButtonPosition } = usePreferences();
 const slots = useSlots();
 const { refresh } = useRefresh();
 
@@ -54,44 +47,11 @@ const rightSlots = computed(() => {
       name: 'global-search',
     });
   }
-  // 偏好设置快捷功能
-  if (preferencesButtonPosition.value.header) {
-    list.push({
-      index: REFERENCE_VALUE + 10,
-      name: 'preferences',
-    });
-    // 将偏好设置中的子功能分组到同一个按钮位置控制逻辑下
-    if (preferences.widget.themeToggle) {
-      list.push({
-        index: REFERENCE_VALUE + 20,
-        name: 'theme-toggle',
-      });
-    }
-    if (preferences.widget.languageToggle) {
-      list.push({
-        index: REFERENCE_VALUE + 30,
-        name: 'language-toggle',
-      });
-    }
-    if (preferences.widget.timezone) {
-      list.push({
-        index: REFERENCE_VALUE + 40,
-        name: 'timezone',
-      });
-    }
-  }
   // 全屏
   if (preferences.widget.fullscreen) {
     list.push({
       index: REFERENCE_VALUE + 50,
       name: 'fullscreen',
-    });
-  }
-  // 消息通知
-  if (preferences.widget.notification) {
-    list.push({
-      index: REFERENCE_VALUE + 60,
-      name: 'notification',
     });
   }
 
@@ -150,10 +110,7 @@ function clearPreferencesAndLogout() {
 </script>
 
 <template>
-  <template
-    v-for="slot in leftSlots.filter((item) => item.index < REFERENCE_VALUE)"
-    :key="slot.name"
-  >
+  <template v-for="slot in leftSlots.filter((item) => item.index < REFERENCE_VALUE)" :key="slot.name">
     <slot :name="slot.name">
       <template v-if="slot.name === 'refresh'">
         <VbenIconButton class="my-0 mr-1 rounded-md" @click="refresh">
@@ -165,46 +122,20 @@ function clearPreferencesAndLogout() {
   <div class="flex-center hidden lg:block">
     <slot name="breadcrumb"></slot>
   </div>
-  <template
-    v-for="slot in leftSlots.filter((item) => item.index > REFERENCE_VALUE)"
-    :key="slot.name"
-  >
+  <template v-for="slot in leftSlots.filter((item) => item.index > REFERENCE_VALUE)" :key="slot.name">
     <slot :name="slot.name"></slot>
   </template>
-  <div
-    :class="`menu-align-${preferences.header.menuAlign}`"
-    class="flex h-full min-w-0 flex-1 items-center"
-  >
+  <div :class="`menu-align-${preferences.header.menuAlign}`" class="flex h-full min-w-0 flex-1 items-center">
     <slot name="menu"></slot>
   </div>
   <div class="flex h-full min-w-0 shrink-0 items-center">
     <template v-for="slot in rightSlots" :key="slot.name">
       <slot :name="slot.name">
-        <template v-if="slot.name === 'global-search'">
-          <GlobalSearch
-            :enable-shortcut-key="globalSearchShortcutKey"
-            :menus="accessStore.accessMenus"
-            class="mr-1 sm:mr-4"
-          />
-        </template>
-
-        <template v-else-if="slot.name === 'preferences'">
-          <PreferencesButton
-            class="mr-1"
-            @clear-preferences-and-logout="clearPreferencesAndLogout"
-          />
-        </template>
-        <template v-else-if="slot.name === 'theme-toggle'">
-          <ThemeToggle class="mt-0.5 mr-1" />
-        </template>
-        <template v-else-if="slot.name === 'language-toggle'">
-          <LanguageToggle class="mr-1" />
+        <template v-if="slot.name === 'preferences'">
+          <PreferencesButton class="mr-1" @clear-preferences-and-logout="clearPreferencesAndLogout" />
         </template>
         <template v-else-if="slot.name === 'fullscreen'">
           <VbenFullScreen class="mr-1" />
-        </template>
-        <template v-else-if="slot.name === 'timezone'">
-          <TimezoneButton class="mt-0.5 mr-1" />
         </template>
       </slot>
     </template>

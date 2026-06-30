@@ -47,26 +47,26 @@ export interface UserListResult {
  * 获取用户列表
  */
 export async function getUserListApi(params: UserListParams) {
-  return requestClient.get<UserListResult>('/users', { params });
+  return requestClient.post<UserListResult>('/users/list', params);
 }
 
 /**
  * 创建用户
  */
 export async function createUserApi(data: UserFormData) {
-  return requestClient.post<UserItem>('/users', data);
+  return requestClient.post<UserItem>('/users/create', data);
 }
 
 /**
  * 更新用户
  */
 export async function updateUserApi(id: number, data: UserFormData) {
-  return requestClient.put<UserItem>(`/users/${id}`, data);
+  return requestClient.post<UserItem>('/users/update', { id, ...data });
 }
 
 /**
  * 删除用户
  */
 export async function deleteUserApi(id: number) {
-  return requestClient.delete(`/users/${id}`);
+  return requestClient.post('/users/delete', { id });
 }

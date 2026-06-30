@@ -1,3 +1,4 @@
+import type { MenuRecordRaw } from '@vben-core/typings';
 import type { Router } from 'vue-router';
 
 import { LOGIN_PATH } from '@vben/constants';
@@ -9,6 +10,20 @@ import { accessRoutes, coreRouteNames } from '#/router/routes';
 import { useAuthStore } from '#/store';
 
 import { generateAccess } from './access';
+
+/**
+ * 获取第一个可访问的叶子菜单路径
+ */
+function getFirstAccessiblePath(menus: MenuRecordRaw[]): string {
+  for (const menu of menus) {
+    if (menu.children?.length) {
+      const childPath = getFirstAccessiblePath(menu.children);
+      if (childPath) return childPath;
+    }
+    if (menu.path && menu.path !== '/') return menu.path;
+  }
+  return '';
+}
 
 /**
  * 通用守卫配置
@@ -107,9 +122,10 @@ function setupAccessGuard(router: Router) {
     accessStore.setAccessMenus(accessibleMenus);
     accessStore.setAccessRoutes(accessibleRoutes);
     accessStore.setIsAccessChecked(true);
+    const firstMenuPath = getFirstAccessiblePath(accessibleMenus);
     const redirectPath = (from.query.redirect ??
       (to.path === preferences.app.defaultHomePath
-        ? userInfo.homePath || preferences.app.defaultHomePath
+        ? userInfo.homePath || firstMenuPath || preferences.app.defaultHomePath
         : to.fullPath)) as string;
 
     return {

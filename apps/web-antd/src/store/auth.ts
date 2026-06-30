@@ -10,7 +10,7 @@ import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 import { notification } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 
-import { getAccessCodesApi, getUserInfoApi, loginApi, logoutApi } from '#/api';
+import { clearNavCache, getAccessCodesApi, getUserInfoApi, loginApi, logoutApi } from '#/api';
 import { $t } from '#/locales';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -33,21 +33,27 @@ export const useAuthStore = defineStore('auth', () => {
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
-      const { access_token: accessToken } = await loginApi(params);
+      const { access_token: accessToken, user: loginUser } =
+        await loginApi(params);
 
       // 如果成功获取到 accessToken
       if (accessToken) {
         accessStore.setAccessToken(accessToken);
 
-        // 获取用户信息并存储到 accessStore 中
-        const [fetchUserInfoResult, accessCodes] = await Promise.all([
-          fetchUserInfo(),
-          getAccessCodesApi(),
-        ]);
-
-        userInfo = fetchUserInfoResult;
-
+        // 从登录响应构造用户信息
+        userInfo = {
+          userId: String(loginUser?.id ?? ''),
+          username: loginUser?.username ?? '',
+          realName: loginUser?.real_name ?? '',
+          avatar: loginUser?.avatar ?? '',
+          desc: '',
+          homePath: '',
+          token: accessToken,
+        };
         userStore.setUserInfo(userInfo);
+
+        // 获取权限码
+        const accessCodes = await getAccessCodesApi();
         accessStore.setAccessCodes(accessCodes);
 
         if (accessStore.loginExpired) {
@@ -55,9 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
         } else {
           onSuccess
             ? await onSuccess?.()
-            : await router.push(
-                userInfo.homePath || preferences.app.defaultHomePath,
-              );
+            : await router.push('/');
         }
 
         if (userInfo?.realName) {
@@ -85,6 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
     resetAllStores();
     accessStore.setLoginExpired(false);
+    clearNavCache();
 
     // 回登录页带上当前路由地址
     await router.replace({
