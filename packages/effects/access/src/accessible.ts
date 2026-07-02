@@ -31,8 +31,10 @@ async function generateAccessible(
 
   const root = router.getRoutes().find((item) => item.path === '/');
 
-  // 获取已有的路由名称列表
-  const names = root?.children?.map((item) => item.name) ?? [];
+  // 清除旧的动态路由子节点，防止切换用户后残留上一个用户的路由
+  if (root) {
+    root.children = [];
+  }
 
   // 动态添加到router实例内
   accessibleRoutes.forEach((route) => {
@@ -42,19 +44,12 @@ async function generateAccessible(
       if (route.children && route.children.length > 0) {
         delete route.component;
       }
-      // 根据router name判断，如果路由已经存在，则不再添加
-      if (names?.includes(route.name)) {
-        // 找到已存在的路由索引并更新，不更新会造成切换用户时，一级目录未更新，homePath 在二级目录导致的404问题
-        const index = root.children?.findIndex(
-          (item) => item.name === route.name,
-        );
-        if (index !== undefined && index !== -1 && root.children) {
-          root.children[index] = route;
-        }
-      } else {
-        root.children?.push(route);
-      }
+      root.children?.push(route);
     } else {
+      // 如果已存在同名路由则先移除，防止重复添加
+      if (route.name && router.hasRoute(route.name)) {
+        router.removeRoute(route.name);
+      }
       router.addRoute(route);
     }
   });

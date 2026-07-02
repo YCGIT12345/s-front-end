@@ -15,7 +15,6 @@ import {
   Popconfirm,
   Select,
   Space,
-  Spin,
   Table,
   Tag,
 } from 'ant-design-vue';
@@ -27,8 +26,6 @@ import {
   deleteAccountApi,
   getAccountListApi,
   getAccountRolesApi,
-  getAllMenusForAssignApi,
-  setAccountRolesApi,
   updateAccountApi,
 } from '#/api';
 import { getRoleListApi } from '#/api/core/role';
@@ -58,17 +55,23 @@ const formData = reactive<AccountFormData>({
   address: '',
   status: 1,
   expire_at: null,
+  role_ids: [],
 });
 
-const roleModalVisible = ref(false);
-const roleLoading = ref(false);
+// 角色选择相关
 const allRoles = ref<any[]>([]);
 const selectedRoleIds = ref<number[]>([]);
-const currentAccountId = ref<number | null>(null);
+const roleLoading = ref(false);
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
   { title: '账户名称', dataIndex: 'account_name', key: 'account_name' },
+  {
+    title: '绑定角色',
+    dataIndex: 'bind_roles',
+    key: 'bind_roles',
+    width: 200,
+  },
   { title: '联系人', dataIndex: 'contact_person', key: 'contact_person' },
   { title: '联系电话', dataIndex: 'contact_phone', key: 'contact_phone' },
   { title: '联系邮箱', dataIndex: 'contact_email', key: 'contact_email' },
@@ -79,10 +82,11 @@ const columns = [
     key: 'status',
     width: 80,
   },
+  
   {
     title: '操作',
     key: 'action',
-    width: 220,
+    width: 160,
     fixed: 'right',
   },
 ];
@@ -113,7 +117,7 @@ function handleTableChange(pag: { current: number; pageSize: number }) {
   fetchList();
 }
 
-function openCreateModal() {
+async function openCreateModal() {
   editingId.value = null;
   modalTitle.value = '新增账户';
   Object.assign(formData, {
@@ -126,11 +130,21 @@ function openCreateModal() {
     address: '',
     status: 1,
     expire_at: null,
+    role_ids: [],
   });
+  selectedRoleIds.value = [];
+  // 加载角色列表
+  roleLoading.value = true;
+  try {
+    const res = await getRoleListApi({ page: 1, page_size: 100 });
+    allRoles.value = res.items ?? [];
+  } finally {
+    roleLoading.value = false;
+  }
   modalVisible.value = true;
 }
 
-function openEditModal(record: AccountItem) {
+async function openEditModal(record: AccountItem) {
   editingId.value = record.id;
   modalTitle.value = '编辑账户';
   Object.assign(formData, {
@@ -143,7 +157,20 @@ function openEditModal(record: AccountItem) {
     address: record.address,
     status: record.status,
     expire_at: record.expire_at,
+    role_ids: [],
   });
+  // 加载角色列表和账户已有角色
+  roleLoading.value = true;
+  try {
+    const [rolesRes, accountRolesRes] = await Promise.all([
+      getRoleListApi({ page: 1, page_size: 100 }),
+      getAccountRolesApi(record.id),
+    ]);
+    allRoles.value = rolesRes.items ?? [];
+    selectedRoleIds.value = (accountRolesRes ?? []).map((r: any) => r.id);
+  } finally {
+    roleLoading.value = false;
+  }
   modalVisible.value = true;
 }
 
@@ -162,7 +189,7 @@ async function handleSubmit() {
   }
   modalLoading.value = true;
   try {
-    const submitData = { ...formData };
+    const submitData = { ...formData, role_ids: selectedRoleIds.value };
     // 编辑时如未填写密码则不发送密码字段
     if (editingId.value && !submitData.password) {
       delete submitData.password;
@@ -186,34 +213,6 @@ async function handleDelete(id: number) {
   await deleteAccountApi(id);
   message.success('删除成功');
   fetchList();
-}
-
-async function openRoleModal(record: AccountItem) {
-  currentAccountId.value = record.id;
-  roleModalVisible.value = true;
-  roleLoading.value = true;
-  try {
-    const [rolesRes, accountRolesRes] = await Promise.all([
-      getRoleListApi({ page: 1, page_size: 100 }),
-      getAccountRolesApi(record.id),
-    ]);
-    allRoles.value = rolesRes.items ?? [];
-    selectedRoleIds.value = (accountRolesRes ?? []).map((r: any) => r.id);
-  } finally {
-    roleLoading.value = false;
-  }
-}
-
-async function handleSaveRoles() {
-  if (currentAccountId.value === null) return;
-  roleLoading.value = true;
-  try {
-    await setAccountRolesApi(currentAccountId.value, selectedRoleIds.value);
-    message.success('角色分配成功');
-    roleModalVisible.value = false;
-  } finally {
-    roleLoading.value = false;
-  }
 }
 
 onMounted(fetchList);
@@ -257,13 +256,18 @@ onMounted(fetchList);
             {{ record.status === 1 ? '启用' : '禁用' }}
           </Tag>
         </template>
+        <template v-if="column.key === 'roles'">
+          <Space v-if="record.roles && record.roles.length > 0" wrap>
+            <Tag v-for="role in record.roles" :key="role.id" color="blue">
+              {{ role.role_name }}
+            </Tag>
+          </Space>
+          <span v-else class="text-gray-400">-</span>
+        </template>
         <template v-if="column.key === 'action'">
           <Space>
             <Button size="small" v-if="hasAccessByCodes(['account:edit'])" type="link" @click="openEditModal(record)">
               编辑
-            </Button>
-            <Button size="small" v-if="record.id !== 1" type="link" @click="openRoleModal(record)">
-              角色
             </Button>
             <Popconfirm
               title="确定删除该账户？"
@@ -314,44 +318,27 @@ onMounted(fetchList);
             placeholder="请输入联系电话"
           />
         </Form.Item>
-        <Form.Item label="联系邮箱">
-          <Input
-            v-model:value="formData.contact_email"
-            placeholder="请输入联系邮箱"
-          />
-        </Form.Item>
-        <Form.Item label="联系地址">
-          <Input v-model:value="formData.address" placeholder="请输入联系地址" />
-        </Form.Item>
         <Form.Item label="状态">
           <Select v-model:value="formData.status">
             <Select.Option :value="1">启用</Select.Option>
             <Select.Option :value="0">禁用</Select.Option>
           </Select>
         </Form.Item>
+        <Form.Item label="角色" required>
+          <Checkbox.Group v-model:value="selectedRoleIds">
+            <div v-for="role in allRoles" :key="role.id" class="mb-1">
+              <Checkbox :value="role.id">
+                {{ role.role_name }}
+                <span class="text-gray-400">({{ role.role_code }})</span>
+              </Checkbox>
+            </div>
+          </Checkbox.Group>
+          <div v-if="allRoles.length === 0" class="text-gray-400">
+            暂无角色数据
+          </div>
+        </Form.Item>
       </Form>
     </Modal>
 
-    <!-- 角色分配弹窗 -->
-    <Modal
-      v-model:open="roleModalVisible"
-      :confirm-loading="roleLoading"
-      title="分配角色"
-      @ok="handleSaveRoles"
-    >
-      <Spin :spinning="roleLoading">
-        <Checkbox.Group v-model:value="selectedRoleIds">
-          <div v-for="role in allRoles" :key="role.id" class="mb-2">
-            <Checkbox :value="role.id">
-              {{ role.role_name }}
-              <span class="text-gray-400">({{ role.role_code }})</span>
-            </Checkbox>
-          </div>
-        </Checkbox.Group>
-        <div v-if="allRoles.length === 0" class="text-center text-gray-400">
-          暂无角色数据
-        </div>
-      </Spin>
-    </Modal>
   </Page>
 </template>

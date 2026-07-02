@@ -19,6 +19,7 @@ export interface AccountFormData {
   address?: string;
   status?: number;
   expire_at?: string | null;
+  role_ids?: number[];
 }
 
 /** 账户列表项 */
@@ -31,6 +32,7 @@ export interface AccountItem {
   address: string;
   status: number;
   expire_at: string | null;
+  roles?: RoleBrief[];
   created_at: string;
   updated_at: string;
 }

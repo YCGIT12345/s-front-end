@@ -81,8 +81,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout(redirect: boolean = true) {
-    // 清空所有本地存储
+    // 清空所有本地存储和会话存储
     localStorage.clear();
+    sessionStorage.clear();
+    // 清除导航菜单缓存，防止切换账号后显示上一个用户的菜单
+    clearNavCache();
     resetAllStores();
 
     // 回登录页带上当前路由地址
