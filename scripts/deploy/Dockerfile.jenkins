@@ -1,0 +1,20 @@
+# 基于官方 Jenkins LTS 镜像，预装 sshpass + Node.js 依赖
+FROM jenkins/jenkins:lts-jdk17
+
+USER root
+
+# 安装 sshpass（用于 SCP/SSH 部署）和其他必要工具
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends sshpass openssh-client && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# 安装 Node.js 22（Jenkins NodeJS 插件会用到）
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean
+
+# 安装 pnpm
+RUN npm install -g pnpm@11
+
+USER jenkins
