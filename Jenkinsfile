@@ -142,48 +142,42 @@ pipeline {
         stage('部署到服务器') {
             steps {
                 script {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'tsingli-server-credentials',
-                        usernameVariable: 'SSH_USER',
-                        passwordVariable: 'SSH_PASS'
-                    )]) {
-                        def sshOpts = "-o StrictHostKeyChecking=no -p ${SERVER_PORT}"
+                    def sshOpts = "-o StrictHostKeyChecking=no -p ${SERVER_PORT}"
 
-                        echo ">>> 上传镜像压缩包到服务器..."
-                        sh """
-                            sshpass -p '${SSH_PASS}' scp ${sshOpts} ${ARCHIVE_NAME} ${SSH_USER}@${SERVER_IP}:${DEPLOY_DIR}/
-                        """
+                    echo ">>> 上传镜像压缩包到服务器..."
+                    sh """
+                        scp ${sshOpts} ${ARCHIVE_NAME} ${SERVER_USER}@${SERVER_IP}:${DEPLOY_DIR}/
+                    """
 
-                        echo ">>> 在服务器上执行部署..."
-                        sh """
-                            sshpass -p '${SSH_PASS}' ssh ${sshOpts} ${SSH_USER}@${SERVER_IP} << 'ENDSSH'
-                                set -e
-                                cd ${DEPLOY_DIR}
+                    echo ">>> 在服务器上执行部署..."
+                    sh """
+                        ssh ${sshOpts} ${SERVER_USER}@${SERVER_IP} << 'ENDSSH'
+                            set -e
+                            cd ${DEPLOY_DIR}
 
-                                echo "[1/5] 加载 Docker 镜像..."
-                                docker load < ${ARCHIVE_NAME}
+                            echo "[1/5] 加载 Docker 镜像..."
+                            docker load < ${ARCHIVE_NAME}
 
-                                echo "[2/5] 停止旧容器..."
-                                docker stop ${IMAGE_NAME} || true
-                                docker rm ${IMAGE_NAME} || true
+                            echo "[2/5] 停止旧容器..."
+                            docker stop ${IMAGE_NAME} || true
+                            docker rm ${IMAGE_NAME} || true
 
-                                echo "[3/5] 启动新容器..."
-                                docker run -d \\
-                                    --name ${IMAGE_NAME} \\
-                                    --restart=always \\
-                                    -p 8080:8080 \\
-                                    ${IMAGE_NAME}:latest
+                            echo "[3/5] 启动新容器..."
+                            docker run -d \\
+                                --name ${IMAGE_NAME} \\
+                                --restart=always \\
+                                -p 8080:8080 \\
+                                ${IMAGE_NAME}:latest
 
-                                echo "[4/5] 清理传输文件..."
-                                rm -f ${ARCHIVE_NAME}
+                            echo "[4/5] 清理传输文件..."
+                            rm -f ${ARCHIVE_NAME}
 
-                                echo "[5/5] 验证容器状态..."
-                                docker ps --filter name=${IMAGE_NAME} --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'
+                            echo "[5/5] 验证容器状态..."
+                            docker ps --filter name=${IMAGE_NAME} --format 'table {{.Names}}\\t{{.Status}}\\t{{.Ports}}'
 
-                                echo ">>> 部署完成！"
+                            echo ">>> 部署完成！"
 ENDSSH
-                        """
-                    }
+                    """
                 }
             }
         }
@@ -195,21 +189,15 @@ ENDSSH
             }
             steps {
                 script {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'tsingli-server-credentials',
-                        usernameVariable: 'SSH_USER',
-                        passwordVariable: 'SSH_PASS'
-                    )]) {
-                        def sshOpts = "-o StrictHostKeyChecking=no -p ${SERVER_PORT}"
-                        sh """
-                            sshpass -p '${SSH_PASS}' ssh ${sshOpts} ${SSH_USER}@${SERVER_IP} << 'ENDSSH'
-                                echo ">>> 清理无用的 Docker 镜像 (dangling)..."
-                                docker image prune -f
-                                echo ">>> 当前镜像列表:"
-                                docker images ${IMAGE_NAME}
+                    def sshOpts = "-o StrictHostKeyChecking=no -p ${SERVER_PORT}"
+                    sh """
+                        ssh ${sshOpts} ${SERVER_USER}@${SERVER_IP} << 'ENDSSH'
+                            echo ">>> 清理无用的 Docker 镜像 (dangling)..."
+                            docker image prune -f
+                            echo ">>> 当前镜像列表:"
+                            docker images ${IMAGE_NAME}
 ENDSSH
-                        """
-                    }
+                    """
                 }
             }
         }
